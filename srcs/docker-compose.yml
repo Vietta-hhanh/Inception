@@ -1,0 +1,75 @@
+version: "3.8"
+
+services:
+  mariadb:
+    build: 
+      context: ./requirements/MariaDB/
+      args:
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+        MYSQL_USER: ${MYSQL_USER:-tmpuser}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        MYSQL_DATABASE: ${MYSQL_DATABASE:-hhanhbase}
+    networks:
+      - inception
+    volumes:
+      - DB:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    restart: always
+    env_file: .env
+    hostname: localhost
+    
+  wordpress:
+    depends_on:
+      - mariadb
+    build:
+      context: ./requirements/WordPress/
+      args:
+        DOMAIN_NAME_: ${DOMAIN_NAME:-localhost}
+    networks:
+      - inception
+    volumes:
+      - WP:/var/www/
+    ports:
+      - "9000:9000"
+    restart: always
+    env_file: .env
+    hostname: localhost
+
+  nginx:
+    depends_on:
+      - wordpress
+    build:
+      context: ./requirements/nginx/
+      args:
+        CERTS_: ${CERTS:-/certificates}
+        DOMAIN_NAME_: ${DOMAIN_NAME:-localhost}
+    networks:
+      - inception
+    volumes:
+      - WP:/var/www/
+    ports:
+      - "443:443"
+      - "80:80"
+    restart: always
+    env_file: .env
+    hostname: localhost
+
+networks:
+  inception:
+    driver: bridge
+volumes:
+  DB:
+    driver: local
+    # driver_opts:
+    #   type: "none"
+    #   o: "bind"
+    #   device: "data/db"
+  WP:
+    driver: local
+    # driver_opts:
+    #   type: "none"
+    #   o: "bind"
+    #   device: "data/wp"
+
+    
